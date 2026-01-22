@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GMT Time Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 40px;
+      border-radius: 14px;
+      text-align: center;
+      width: 320px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .real {
+      background: #22c55e;
+      color: black;
+    }
+
+    .prank {
+      background: #38bdf8;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Current GMT Time</h2>
+    <h1 id="time">--:--:--</h1>
+
+    <button class="real" onclick="updateTime()">
+      Refresh GMT
+    </button>
+
+    <br>
+
+    <button class="prank" onclick="toSGT()">
+      Change to SGT (UTC+8)
+    </button>
+  </div>
+
+  <script>
+    function updateTime() {
+      const now = new Date();
+      document.getElementById("time").textContent =
+        now.toUTCString().slice(17, 25);
+    }
+
+    updateTime();
+
+    function toSGT() {
+      window.location.href = "https://youtu.be/dQw4w9WgXcQ";
+    }
+  </script>
+
+</body>
+</html>
