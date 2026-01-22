@@ -1,77 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>GMT Time Tool</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      display: flex;
-      height: 100vh;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .card {
-      background: #1e293b;
-      padding: 40px;
-      border-radius: 14px;
-      text-align: center;
-      width: 320px;
-    }
-
-    button {
-      margin-top: 20px;
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 15px;
-    }
-
-    .real {
-      background: #22c55e;
-      color: black;
-    }
-
-    .prank {
-      background: #38bdf8;
-      color: black;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Simple Minesweeper</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f0f0; }
+        #grid { display: grid; grid-template-columns: repeat(10, 30px); grid-template-rows: repeat(10, 30px); gap: 2px; border: 5px solid #bbb; background-color: #bbb; }
+        .cell { width: 30px; height: 30px; background-color: #ddd; border: 1px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; user-select: none; }
+        .cell.revealed { background-color: #eee; border: 1px solid #ccc; cursor: default; }
+        .cell.mine { background-color: red; }
+        .cell.flagged { background-color: yellow; }
+        .status { margin: 20px; font-size: 1.2rem; }
+        button { padding: 10px 20px; cursor: pointer; }
+    </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Current GMT Time</h2>
-    <h1 id="time">--:--:--</h1>
-
-    <button class="real" onclick="updateTime()">
-      Refresh GMT
-    </button>
-
+    <h2>Minesweeper</h2>
+    <div class="status" id="status">Click a cell to start!</div>
+    <div id="grid"></div>
     <br>
+    <button onclick="handleReset()">Reset Game</button>
 
-    <button class="prank" onclick="toSGT()">
-      Change to SGT (UTC+8)
-    </button>
-  </div>
+    <script>
+	let resetClicks = 0;
+        const size = 10;
+        const mineCount = 15;
+        let grid = [];
+        let gameOver = false;
 
-  <script>
-    function updateTime() {
-      const now = new Date();
-      document.getElementById("time").textContent =
-        now.toUTCString().slice(17, 25);
+        function setupGame() {
+            gameOver = false;
+            document.getElementById('status').innerText = "Avoid the mines!";
+            const gridElement = document.getElementById('grid');
+            gridElement.innerHTML = '';
+            grid = [];
+
+            // 1. Create the grid array
+            for (let r = 0; r < size; r++) {
+                grid[r] = [];
+                for (let c = 0; c < size; c++) {
+                    grid[r][c] = { r, c, mine: false, revealed: false, flagged: false, neighborCount: 0 };
+                    const cellDiv = document.createElement('div');
+                    cellDiv.classList.add('cell');
+                    cellDiv.id = `cell-${r}-${c}`;
+                    cellDiv.addEventListener('click', () => clickCell(r, c));
+                    cellDiv.addEventListener('contextmenu', (e) => { e.preventDefault(); flagCell(r, c); });
+                    gridElement.appendChild(cellDiv);
+                }
+            }
+
+            // 2. Plant mines
+            let planted = 0;
+            while (planted < mineCount) {
+                let r = Math.floor(Math.random() * size);
+                let c = Math.floor(Math.random() * size);
+                if (!grid[r][c].mine) {
+                    grid[r][c].mine = true;
+                    planted++;
+                }
+            }
+
+            // 3. Calculate numbers
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (grid[r][c].mine) continue;
+                    let count = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size && grid[nr][nc].mine) count++;
+                        }
+                    }
+                    grid[r][c].neighborCount = count;
+                }
+            }
+        }
+
+        function clickCell(r, c) {
+            if (gameOver || grid[r][c].revealed || grid[r][c].flagged) return;
+
+            const cell = grid[r][c];
+            cell.revealed = true;
+            const el = document.getElementById(`cell-${r}-${c}`);
+            el.classList.add('revealed');
+
+            if (cell.mine) {
+                el.innerText = '💣';
+                el.classList.add('mine');
+                endGame(false);
+            } else {
+                if (cell.neighborCount > 0) {
+                    el.innerText = cell.neighborCount;
+                } else {
+                    // Flood fill for empty cells
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size) clickCell(nr, nc);
+                        }
+                    }
+                }
+                checkWin();
+            }
+        }
+
+        function flagCell(r, c) {
+            if (gameOver || grid[r][c].revealed) return;
+            const cell = grid[r][c];
+            cell.flagged = !cell.flagged;
+            document.getElementById(`cell-${r}-${c}`).classList.toggle('flagged');
+        }
+
+        function checkWin() {
+            let revealedCount = 0;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (grid[r][c].revealed) revealedCount++;
+                }
+            }
+            if (revealedCount === (size * size) - mineCount) endGame(true);
+        }
+
+        function endGame(won) {
+            gameOver = true;
+            document.getElementById('status').innerText = won ? "You Win! 🎉" : "Game Over! 💥";
+        }
+	function handleReset() {
+    resetClicks++;
+    if (resetClicks >= 2) {
+        window.location.href = "https://youtu.be/dQw4w9WgXcQ"; // Rickroll
+        return;
     }
+    setupGame();
+}
 
-    updateTime();
-
-    function toSGT() {
-      window.location.href = "https://youtu.be/dQw4w9WgXcQ";
-    }
-  </script>
-
+        setupGame();
+    </script>
 </body>
 </html>
